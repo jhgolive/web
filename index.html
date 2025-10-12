@@ -366,7 +366,7 @@ window.onload = function() {
   const fontSizeLabel = document.getElementById("volume-label"); // 기존 볼륨 라벨 사용
 
   function updateFontSizeLabel() {
-	fontSizeLabel.textContent = currentFontSize + "px";
+	fontSizeLabel.textContent = currentFontSize;
   }
 
   function changeFontSize(delta) {
@@ -425,7 +425,7 @@ window.onload = function() {
 <hr>
 <div id="status-text">뉴스 컨트롤</div>
 <div class="btn-row">
-  <div class="btn-label">글자 <span id="volume-label">28px</span></div>
+  <div class="btn-label">글자 <span id="volume-label">28</span></div>
   <button id="vol-up">+</button>
   <button id="vol-down">-</button>
 </div>
