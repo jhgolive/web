@@ -369,6 +369,8 @@ window.onload = function() {
 	}
 		  
 	// 글자 크기 변경
+	const newsEl = document.getElementById("news");
+
 	function changeFontSize(delta) {
 	  currentFontSize = Math.min(60, Math.max(10, currentFontSize + delta)); // 10~60px 제한
 	  newsEl.style.fontSize = currentFontSize + "px"; // 뉴스 텍스트에 적용
