@@ -37,7 +37,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // serve static viewer/controller
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(__dirname));
 
 // Simple health check
 app.get("/health", (req, res) => res.send({ status: "ok" }));
