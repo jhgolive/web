@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Prism Controller</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", Arial; margin:12px; }
+    .row { margin-bottom:8px; }
+    button { padding:8px 12px; margin-right:8px; }
+    input[type=text] { width:70%; padding:8px; margin-right:8px; }
+  </style>
+</head>
+<body>
+  <h3>Prism Remote Controller</h3>
+  <div>
+    Room: <input id="room" value="default" />
+    Server: <input id="server" value="" placeholder="leave blank to use this origin" />
+    <button id="connect">Connect</button>
+    <span id="state">Disconnected</span>
+  </div>
+
+  <hr />
+
+  <div class="row">
+    <button onclick="send('scrollUp')">▲ Scroll Up</button>
+    <button onclick="send('scrollDown')">▼ Scroll Down</button>
+    <button onclick="send('click:a')">Click first &lt;a&gt;</button>
+  </div>
+
+  <div class="row">
+    <input id="url" type="text" placeholder="https://example.com" />
+    <button onclick="goUrl()">Go (load URL)</button>
+  </div>
+
+  <div class="row">
+    <textarea id="raw" placeholder="Raw JS or command" style="width:100%;height:80px"></textarea>
+    <div style="margin-top:6px;">
+      <button onclick="sendRaw()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    let ws = null;
+    const stateEl = document.getElementById('state');
+
+    function connect() {
+      const room = document.getElementById('room').value || 'default';
+      const serverInput = document.getElementById('server').value.trim();
+      const origin = serverInput || location.origin;
+      const proto = (origin.startsWith('https')) ? 'wss' : 'ws';
+      // If user supplied a full origin, use its host; else use location.host
+      // simple approach: use location.host to build ws url when server blank
+      let wsUrl;
+      if (!serverInput) {
+        const wsProto = (location.protocol === 'https:') ? 'wss:' : 'ws:';
+        wsUrl = `${wsProto}//${location.host}/?type=controller&room=${encodeURIComponent(room)}`;
+      } else {
+        // user entered full origin like https://myapp.up.railway.app
+        const tmp = new URL(origin);
+        const wsProto = (tmp.protocol === 'https:') ? 'wss:' : 'ws:';
+        wsUrl = `${wsProto}//${tmp.host}/?type=controller&room=${encodeURIComponent(room)}`;
+      }
+
+      if (ws) ws.close();
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => stateEl.textContent = 'Connected';
+      ws.onclose = () => stateEl.textContent = 'Disconnected';
+      ws.onerror = (e) => stateEl.textContent = 'Error';
+      ws.onmessage = (e) => {
+        console.log('Message from viewer:', e.data);
+      };
+    }
+
+    function send(cmd) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return alert('WS not connected');
+      ws.send(cmd);
+    }
+
+    function goUrl() {
+      const value = document.getElementById('url').value.trim();
+      if (!value) return alert('URL 입력');
+      try {
+        new URL(value);
+      } catch (e) {
+        return alert('유효한 URL을 입력하세요.');
+      }
+      // send as JSON command goto
+      const obj = { cmd: 'goto', url: value };
+      ws.send(JSON.stringify(obj));
+    }
+
+    function sendRaw() {
+      const txt = document.getElementById('raw').value;
+      if (!txt) return;
+      if (!ws || ws.readyState !== WebSocket.OPEN) return alert('WS not connected');
+      ws.send(txt);
+    }
+
+    document.getElementById('connect').addEventListener('click', connect);
+
+    // auto connect on load if origin-based
+    // connect();
+  </script>
+</body>
+</html>
