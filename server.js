@@ -64,62 +64,57 @@ app.get("/proxy", async (req, res) => {
   try {
     const targetUrl = new URL(target);
 
+    // fetch — Node18 기본 fetch 사용
     const resp = await fetch(target, {
       headers: {
-        "User-Agent": req.headers["user-agent"] || "Mozilla/5.0"
-      },
-      // 🔥 중요: undici는 compression 옵션으로 자동 압축 제거 가능
-      // Node18 기본 fetch는 이게 안됨
-      compress: false
+        "User-Agent": req.headers["user-agent"] || 
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+      }
     });
 
-    // 🔥 모든 content-encoding 관련 헤더 제거
-    res.removeHeader("content-encoding");
+    // 🚫 resp.headers.delete() 쓰면 immutable 에러 발생 → 절대 쓰면 안 됨
+    // 대신 응답 헤더 복사 시 encoding 관련 헤더만 skip
 
-    const skip = [
+    const headersToSkip = [
       "x-frame-options",
       "content-security-policy",
       "content-security-policy-report-only",
       "strict-transport-security",
-      "content-encoding",
-      "cf-cache-status",
-      "cf-ray",
-      "etag",
-      "vary"
+      "content-encoding",      // gzip/br 제거용
+      "transfer-encoding"      // chunked 같은 경우 충돌 방지
     ];
 
-    for (const [k, v] of resp.headers.entries()) {
-      if (!skip.includes(k.toLowerCase())) {
-        res.setHeader(k, v);
+    // 모든 원본 헤더 복사 (skip 제외)
+    resp.headers.forEach((value, key) => {
+      if (!headersToSkip.includes(key.toLowerCase())) {
+        res.setHeader(key, value);
       }
-    }
+    });
 
-    const contentType =
-      resp.headers.get("content-type") || "text/html; charset=utf-8";
+    // content-type 보정
+    const contentType = resp.headers.get("content-type") ||
+      "text/html; charset=utf-8";
     res.setHeader("Content-Type", contentType);
 
-    let body = await resp.text();
+    // 📌 body 읽기
+    const body = await resp.text();  // Node18이 자동 압축해제
 
+    // HTML 처리 — base injection
     if (contentType.includes("text/html")) {
-      const inject =
-        `<base href="${targetUrl.origin}">\n` +
-        `<meta name="proxied-from" content="${targetUrl.href}">\n`;
-
-      body = body.replace(
+      const injected = body.replace(
         /<head([^>]*)>/i,
-        (m) => `${m}\n${inject}`
+        (m) => `${m}\n<base href="${targetUrl.origin}">\n`
       );
-      res.send(body);
-      return;
+      return res.send(injected);
     }
 
-    // binary fallback
+    // 그 외 (이미 fetch가 압축 해제한 상태)
     const buffer = Buffer.from(await resp.arrayBuffer());
-    res.send(buffer);
+    return res.send(buffer);
 
   } catch (err) {
     console.error("Proxy error:", err);
-    res.status(500).send("Proxy fetch failed: " + String(err.message));
+    return res.status(502).send("Proxy fetch failed: " + err.message);
   }
 });
 
