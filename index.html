@@ -7,6 +7,7 @@
     body { font-family: Arial, sans-serif; padding: 20px; }
     .news-item { margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
     .news-item img { max-width: 100%; height: auto; display: block; margin-top: 5px; }
+    .news-item div { margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -19,19 +20,23 @@
 
     async function loadNews() {
       try {
-        const res = await fetch(workerURL); // 카테고리 없이 전체 최신 뉴스
+        const res = await fetch(workerURL); // 전체 최신 뉴스
         const text = await res.text();
         const parser = new DOMParser();
         const xml = parser.parseFromString(text, "application/xml");
         const items = xml.querySelectorAll('item');
         newsContainer.innerHTML = '';
 
+        const CONTENT_NS = 'http://purl.org/rss/1.0/modules/content/';
+
         items.forEach(item => {
           const title = item.querySelector('title')?.textContent || '';
-          const link = item.querySelector('link')?.textContent || '#';
-          // <content:encoded> 가져오기
-          const contentEncoded = item.querySelector('content\\:encoded')?.textContent || '';
+          const link = item.querySelector('link')?.textContent || '';
           const image = item.querySelector('enclosure')?.getAttribute('url') || '';
+
+          // content:encoded 가져오기
+          const contentEncodedEl = item.getElementsByTagNameNS(CONTENT_NS, 'encoded')[0];
+          const contentEncoded = contentEncodedEl?.textContent || '';
 
           const div = document.createElement('div');
           div.className = 'news-item';
