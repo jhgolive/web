@@ -29,7 +29,8 @@
         items.forEach(item => {
           const title = item.querySelector('title')?.textContent || '';
           const link = item.querySelector('link')?.textContent || '#';
-          const description = item.querySelector('description')?.textContent || '';
+          // <content:encoded> 가져오기
+          const contentEncoded = item.querySelector('content\\:encoded')?.textContent || '';
           const image = item.querySelector('enclosure')?.getAttribute('url') || '';
 
           const div = document.createElement('div');
@@ -37,7 +38,7 @@
           div.innerHTML = `
             <a href="${link}" target="_blank"><h3>${title}</h3></a>
             ${image ? `<img src="${image}">` : ''}
-            <p>${description}</p>
+            <div>${contentEncoded}</div>
           `;
           newsContainer.appendChild(div);
         });
