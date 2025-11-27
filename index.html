@@ -46,18 +46,18 @@
 <div id="wrapper"></div>
 
 <script>
-const API = "https://webnews.rock0424.workers.dev/"; // ← Worker URL 넣기
+const API = "https://webnews.rock0424.workers.dev/"; // Worker URL
+const DEFAULT_IMG = "https://upload.wikimedia.org/wikipedia/commons/4/44/News_icon.png"; // 기본 이미지
 
 async function loadNews() {
   const data = await fetch(API).then(r => r.json());
 
   const wrapper = document.getElementById("wrapper");
   wrapper.innerHTML = data
-    .filter(n => n.img)   // 이미지 있는 뉴스만
-    .slice(0, 15)         // 15개만 표시
+    .slice(0, 15)
     .map(n => `
       <div class="item">
-        <img src="${n.img}" />
+        <img src="${n.img || DEFAULT_IMG}" />
         <div class="title">${n.title}</div>
       </div>
     `).join("");
