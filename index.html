@@ -1,95 +1,70 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<title>연합뉴스TV 뉴스 스크롤</title>
-<style>
-  body {
-    font-family: "Noto Sans KR", sans-serif;
-    margin: 0;
-    background: #f9f9f9;
-    overflow-x: hidden;
-  }
-  #news-container {
-    width: 100%;
-    white-space: nowrap;
-    overflow-x: hidden;
-  }
-  .news-item {
-    display: inline-block;
-    width: 300px;
-    margin: 10px;
-    vertical-align: top;
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 0 6px rgba(0,0,0,0.1);
-    padding: 10px;
-  }
-  .news-item img {
-    width: 100%;
-    height: auto;
-    border-radius: 5px;
-  }
-  .news-title {
-    font-weight: bold;
-    margin: 10px 0 5px 0;
-  }
-  .news-description {
-    font-size: 0.9em;
-    color: #333;
-  }
-</style>
+  <meta charset="UTF-8">
+  <title>연합뉴스TV RSS 뉴스</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .news-item { margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
+    .news-item img { max-width: 100%; height: auto; display: block; margin-top: 5px; }
+  </style>
 </head>
 <body>
+  <h1>연합뉴스TV 뉴스</h1>
+  <select id="category">
+    <option value="latest">최신</option>
+    <option value="politics">정치</option>
+    <option value="economy">경제</option>
+    <option value="society">사회</option>
+    <option value="local">지역</option>
+    <option value="international">세계</option>
+    <option value="culture">문화·연예</option>
+    <option value="sports">스포츠</option>
+    <option value="weather">날씨</option>
+  </select>
+  <div id="news"></div>
 
-<div id="news-container"></div>
+  <script>
+    const workerURL = 'https://your-worker-subdomain.workers.dev/'; // 여기에 Worker URL 넣기
+    const newsContainer = document.getElementById('news');
+    const categorySelect = document.getElementById('category');
 
-<script>
-const rssFeeds = [
-  {title: "최신", url: "http://www.yonhapnewstv.co.kr/browse/feed/"},
-  {title: "정치", url: "http://www.yonhapnewstv.co.kr/category/news/politics/feed/"},
-  {title: "경제", url: "http://www.yonhapnewstv.co.kr/category/news/economy/feed/"},
-  {title: "사회", url: "http://www.yonhapnewstv.co.kr/category/news/society/feed/"},
-  {title: "지역", url: "http://www.yonhapnewstv.co.kr/category/news/local/feed/"},
-  {title: "세계", url: "http://www.yonhapnewstv.co.kr/category/news/international/feed/"},
-  {title: "문화ㆍ연예", url: "http://www.yonhapnewstv.co.kr/category/news/culture/feed/"},
-  {title: "스포츠", url: "http://www.yonhapnewstv.co.kr/category/news/sports/feed/"},
-  {title: "날씨", url: "http://www.yonhapnewstv.co.kr/category/news/weather/feed/"}
-];
+    async function loadNews(category) {
+      newsContainer.innerHTML = '로딩 중...';
+      try {
+        const res = await fetch(workerURL + '?category=' + category);
+        const text = await res.text();
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(text, "application/xml");
+        const items = xml.querySelectorAll('item');
+        newsContainer.innerHTML = '';
 
-async function fetchRSS(url) {
-  const proxy = "https://api.allorigins.win/get?url="; // CORS 우회
-  const response = await fetch(proxy + encodeURIComponent(url));
-  const data = await response.json();
-  const parser = new DOMParser();
-  const xml = parser.parseFromString(data.contents, "application/xml");
-  return xml;
-}
+        items.forEach(item => {
+          const title = item.querySelector('title')?.textContent || '';
+          const link = item.querySelector('link')?.textContent || '#';
+          const description = item.querySelector('description')?.textContent || '';
+          const image = item.querySelector('enclosure')?.getAttribute('url') || '';
 
-async function loadNews() {
-  const container = document.getElementById("news-container");
-  for (let feed of rssFeeds) {
-    const xml = await fetchRSS(feed.url);
-    const items = xml.querySelectorAll("item");
-    items.forEach(item => {
-      const title = item.querySelector("title")?.textContent || "";
-      const link = item.querySelector("link")?.textContent || "#";
-      const description = item.querySelector("description")?.textContent || "";
-      const img = item.querySelector("enclosure")?.getAttribute("url") || "";
-      
-      const newsDiv = document.createElement("div");
-      newsDiv.className = "news-item";
-      newsDiv.innerHTML = `
-        ${img ? `<img src="${img}" alt="news image">` : ""}
-        <div class="news-title"><a href="${link}" target="_blank">${title}</a></div>
-        <div class="news-description">${description}</div>
-      `;
-      container.appendChild(newsDiv);
+          const div = document.createElement('div');
+          div.className = 'news-item';
+          div.innerHTML = `
+            <a href="${link}" target="_blank"><h3>${title}</h3></a>
+            ${image ? `<img src="${image}">` : ''}
+            <p>${description}</p>
+          `;
+          newsContainer.appendChild(div);
+        });
+      } catch (err) {
+        newsContainer.innerHTML = '뉴스를 불러오는데 실패했습니다.';
+        console.error(err);
+      }
+    }
+
+    categorySelect.addEventListener('change', () => {
+      loadNews(categorySelect.value);
     });
-  }
-}
 
-loadNews();
-</script>
+    loadNews('latest'); // 초기 로딩
+  </script>
 </body>
 </html>
