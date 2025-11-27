@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>연합뉴스TV RSS 뉴스</title>
+  <title>연합뉴스TV 뉴스</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
     .news-item { margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
@@ -10,29 +10,16 @@
   </style>
 </head>
 <body>
-  <h1>연합뉴스TV 뉴스</h1>
-  <select id="category">
-    <option value="latest">최신</option>
-    <option value="politics">정치</option>
-    <option value="economy">경제</option>
-    <option value="society">사회</option>
-    <option value="local">지역</option>
-    <option value="international">세계</option>
-    <option value="culture">문화·연예</option>
-    <option value="sports">스포츠</option>
-    <option value="weather">날씨</option>
-  </select>
-  <div id="news"></div>
+  <h1>연합뉴스TV 최신 뉴스</h1>
+  <div id="news">로딩 중...</div>
 
   <script>
-    const workerURL = 'https://webnews.rock0424.workers.dev/'; // 여기에 Worker URL 넣기
+    const workerURL = 'https://your-worker-subdomain.workers.dev/'; // Worker URL
     const newsContainer = document.getElementById('news');
-    const categorySelect = document.getElementById('category');
 
-    async function loadNews(category) {
-      newsContainer.innerHTML = '로딩 중...';
+    async function loadNews() {
       try {
-        const res = await fetch(workerURL + '?category=' + category);
+        const res = await fetch(workerURL); // 카테고리 없이 전체 최신 뉴스
         const text = await res.text();
         const parser = new DOMParser();
         const xml = parser.parseFromString(text, "application/xml");
@@ -60,11 +47,7 @@
       }
     }
 
-    categorySelect.addEventListener('change', () => {
-      loadNews(categorySelect.value);
-    });
-
-    loadNews('latest'); // 초기 로딩
+    loadNews(); // 페이지 로드 시 바로 최신 뉴스 불러오기
   </script>
 </body>
 </html>
